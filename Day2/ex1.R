@@ -5,24 +5,31 @@ dat <- read.table("ex1.dat", skip = 2, header = T)
 head(dat)
 plot(x = dat$Age, y = dat$Length)
 
-data <- list(age = dat$Age, 
-             length = dat$Length, 
-             modnum = 1)
-
 parameters <- list(log_linf = log(8), 
-                   log_kd = log(50), 
-                   log_aref = 0, 
+                   log_k = log(50),
+                   log_Delta = log(50),
+                   a0 = 0,
+                   log_a50 = 50,
                    logSigma = 0)
 
 require(TMB)
 compile('growth.cpp') #turns .cpp file into a DLL (dynamic link library)
 dyn.load(dynlib('growth'))
 
-vb_model <- MakeADFun(data, parameters,DLL="growth",silent=T)
+modnum = 1
+data <- list(age = dat$Age, 
+             length = dat$Length, 
+             modnum = modnum)
+
+if(data$modnum == 1) map <- list(log_Delta=factor(NA),log_a50=factor(NA))
+if(data$modnum == 2) map <- list(log_k=factor(NA),log_a0=factor(NA))
+
+
+vb_model <- MakeADFun(data, parameters,DLL="growth",silent=T, map = map)
 
 vb_fit <- nlminb(vb_model$par, vb_model$fn, vb_model$gr)
-vb_best <- model$env$last.par.best;print(vb_best)
-vb_rep <- sdreport(model); vb_rep
+vb_best <- vb_model$env$last.par.best;print(vb_best)
+vb_rep <- sdreport(vb_model); vb_rep
 
 data <- list(age = dat$Age, 
              length = dat$Length, 
